@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioClearing Lab — Sovereign Bio-Capital Clearing Simulator</title>
+<meta name="description" content="Interactive institutional simulator for the Bio-Capital Clearing System (BCCS). Seven-state clearing engine. 175 jurisdictions. Thermodynamically verified sovereign finance.">
+<meta property="og:title" content="BioClearing Lab — BCCS Simulator">
+<meta property="og:description" content="The interactive institutional simulator for sovereign bio-capital clearing. Coming Q3 2026.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://lab.bioclearing.global">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian: #0A1628;
+    --deep: #0D1B2A;
+    --panel: #152238;
+    --panel-border: rgba(78,205,196,0.08);
+    --ice: #00E5FF;
+    --mint: #4ECDC4;
+    --teal: #45B7D1;
+    --amber: #FFBF00;
+    --silver: #E8ECF1;
+    --pearl: #9BA4B4;
+    --frost: rgba(78,205,196,0.05);
+    --glass: rgba(21,34,56,0.6);
+    --glass-border: rgba(78,205,196,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--obsidian);
+    color: var(--silver);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* === BACKGROUND EFFECTS === */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(78,205,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(78,205,196,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 800px;
+    height: 800px;
+    border-radius: 50%;
+    filter: blur(200px);
+    opacity: 0.15;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .bg-glow-1 { top: -200px; right: -200px; background: var(--teal); }
+  .bg-glow-2 { bottom: -300px; left: -200px; background: var(--ice); opacity: 0.08; }
+
+  .aurora {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--mint), var(--ice), var(--teal), transparent);
+    opacity: 0.6;
+    z-index: 100;
+  }
+
+  /* === TELEMETRY BAR === */
+  .telemetry {
+    position: fixed;
+    top: 2px;
+    left: 0;
+    right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(10,22,40,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--panel-border);
+    z-index: 90;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--pearl);
+  }
+  .telemetry-left { display: flex; align-items: center; gap: 24px; }
+  .telemetry-right { display: flex; align-items: center; gap: 24px; }
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    margin-right: 6px;
+    animation: pulse-dot 3s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--mint); }
+    50% { opacity: 0.4; box-shadow: 0 0 8px var(--mint); }
+  }
+  .telemetry a {
+    color: var(--pearl);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  .telemetry a:hover { color: var(--mint); }
+  .lang-toggle { display: flex; gap: 4px; }
+  .lang-toggle span {
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .lang-toggle span.active { background: rgba(78,205,196,0.15); color: var(--mint); }
+  .lang-toggle span:hover { color: var(--mint); }
+
+  /* === MAIN === */
+  main {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 32px 60px;
+  }
+
+  /* === HERO === */
+  .hero {
+    text-align: center;
+    max-width: 800px;
+    animation: fade-up 1.2s ease-out;
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+    animation: fade-up 1s ease-out;
+  }
+  .logo-hex {
+    width: 44px;
+    height: 44px;
+    position: relative;
+  }
+  .logo-hex svg { width: 100%; height: 100%; }
+  .logo-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: var(--mint);
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 6vw, 72px);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--silver);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 .accent {
+    background: linear-gradient(135deg, var(--mint), var(--ice));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(18px, 2.5vw, 24px);
+    color: var(--pearl);
+    margin-bottom: 40px;
+    font-weight: 400;
+  }
+
+  /* === STATE BAR === */
+  .state-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 48px auto 56px;
+    max-width: 700px;
+    animation: fade-up 1.4s ease-out;
+  }
+  .state-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+  .state-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--pearl);
+    transition: all 0.6s ease;
+    background: var(--panel);
+  }
+  .state-circle.active {
+    border-color: var(--mint);
+    color: var(--mint);
+    box-shadow: 0 0 20px rgba(78,205,196,0.2);
+    background: rgba(78,205,196,0.08);
+  }
+  .state-circle.amber {
+    border-color: var(--amber);
+    color: var(--amber);
+    box-shadow: 0 0 20px rgba(255,191,0,0.15);
+    background: rgba(255,191,0,0.05);
+  }
+  .state-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--pearl);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .state-connector {
+    width: 40px;
+    height: 2px;
+    background: var(--panel-border);
+    margin: 0 4px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .state-connector.lit {
+    background: linear-gradient(90deg, var(--mint), var(--teal));
+    box-shadow: 0 0 8px rgba(78,205,196,0.3);
+  }
+
+  /* === GLASS CARDS === */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 820px;
+    width: 100%;
+    margin-bottom: 56px;
+    animation: fade-up 1.6s ease-out;
+  }
+  .card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    backdrop-filter: blur(16px);
+    transition: all 0.4s ease;
+    cursor: default;
+  }
+  .card:hover {
+    border-color: rgba(78,205,196,0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+  .card-icon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    color: var(--mint);
+    margin-bottom: 16px;
+    display: block;
+  }
+  .card h3 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--silver);
+    margin-bottom: 8px;
+    letter-spacing: 0.01em;
+  }
+  .card p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--pearl);
+  }
+
+  /* === METRICS === */
+  .metrics {
+    display: flex;
+    gap: 48px;
+    margin-bottom: 56px;
+    animation: fade-up 1.8s ease-out;
+  }
+  .metric {
+    text-align: center;
+  }
+  .metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--ice);
+    letter-spacing: -0.02em;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--pearl);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* === LAUNCH BADGE === */
+  .launch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 48px;
+    animation: fade-up 2s ease-out;
+  }
+  .launch-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 100px;
+    border: 1px solid rgba(78,205,196,0.2);
+    background: rgba(78,205,196,0.05);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--mint);
+  }
+  .launch-badge .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--mint);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  .launch-sub {
+    font-size: 13px;
+    color: var(--pearl);
+  }
+  .launch-sub a {
+    color: var(--teal);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(69,183,209,0.3);
+    transition: all 0.3s;
+  }
+  .launch-sub a:hover {
+    color: var(--mint);
+    border-color: var(--mint);
+  }
+
+  /* === PARTNERS === */
+  .partners {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding-top: 40px;
+    border-top: 1px solid var(--panel-border);
+    animation: fade-up 2.2s ease-out;
+  }
+  .partner-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(155,164,180,0.5);
+  }
+  .partner-names {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+  .partner-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--pearl);
+    letter-spacing: 0.02em;
+  }
+  .partner-sep {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(155,164,180,0.3);
+  }
+
+  /* === FOOTER === */
+  footer {
+    position: relative;
+    z-index: 1;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(155,164,180,0.4);
+    letter-spacing: 0.05em;
+  }
+  footer a {
+    color: rgba(155,164,180,0.5);
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+  footer a:hover { color: var(--mint); }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    .telemetry { padding: 0 16px; font-size: 10px; }
+    .telemetry-right .nav-link { display: none; }
+    main { padding: 70px 20px 40px; }
+    .cards { grid-template-columns: 1fr; max-width: 400px; }
+    .metrics { gap: 24px; flex-wrap: wrap; justify-content: center; }
+    .state-bar { transform: scale(0.8); }
+    .state-connector { width: 20px; }
+    .partners { flex-direction: column; gap: 12px; }
+    footer { flex-direction: column; gap: 8px; text-align: center; }
+  }
+
+  /* === CRYSTALLIZATION ANIMATION === */
+  @keyframes crystallize {
+    0% { opacity: 0; transform: scale(0.8) rotate(-5deg); filter: blur(4px); }
+    60% { opacity: 1; transform: scale(1.02) rotate(0.5deg); filter: blur(0); }
+    100% { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+  }
+  .logo-hex { animation: crystallize 1.5s ease-out; }
+
+  /* State bar sequential animation */
+  .state-node:nth-child(1) { animation: fade-up 1.2s ease-out; }
+  .state-node:nth-child(3) { animation: fade-up 1.35s ease-out; }
+  .state-node:nth-child(5) { animation: fade-up 1.5s ease-out; }
+  .state-node:nth-child(7) { animation: fade-up 1.65s ease-out; }
+  .state-node:nth-child(9) { animation: fade-up 1.8s ease-out; }
+  .state-node:nth-child(11) { animation: fade-up 1.95s ease-out; }
+  .state-node:nth-child(13) { animation: fade-up 2.1s ease-out; }
+  .state-node:nth-child(15) { animation: fade-up 2.25s ease-out; }
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+<div class="aurora"></div>
+
+<!-- Telemetry Bar -->
+<nav class="telemetry">
+  <div class="telemetry-left">
+    <span><span class="status-dot"></span>SIL STANDBY</span>
+    <span id="utc-clock"></span>
+  </div>
+  <div class="telemetry-right">
+    <a href="https://bioclearing.global" class="nav-link">bioclearing.global</a>
+    <a href="https://kryonis.global" class="nav-link">kryonis.global</a>
+    <div class="lang-toggle">
+      <span class="active" id="lang-en" onclick="setLang('en')">EN</span>
+      <span id="lang-ru" onclick="setLang('ru')">RU</span>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main>
+  <div class="hero">
+
+    <!-- Logo -->
+    <div class="logo-mark">
+      <div class="logo-hex">
+        <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 2L40 12.5V33.5L22 44L4 33.5V12.5L22 2Z" stroke="url(#hex-grad)" stroke-width="1.5" fill="none"/>
+          <circle cx="22" cy="22" r="3" fill="url(#hex-grad)" opacity="0.8"/>
+          <line x1="22" y1="8" x2="22" y2="18" stroke="url(#hex-grad)" stroke-width="0.8" opacity="0.4"/>
+          <line x1="22" y1="26" x2="22" y2="36" stroke="url(#hex-grad)" stroke-width="0.8" opacity="0.4"/>
+          <line x1="12" y1="16" x2="19" y2="20.5" stroke="url(#hex-grad)" stroke-width="0.8" opacity="0.4"/>
+          <line x1="25" y1="23.5" x2="32" y2="28" stroke="url(#hex-grad)" stroke-width="0.8" opacity="0.4"/>
+          <defs>
+            <linearGradient id="hex-grad" x1="4" y1="2" x2="40" y2="44">
+              <stop offset="0%" stop-color="#4ECDC4"/>
+              <stop offset="100%" stop-color="#00E5FF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <span class="logo-text">BioClearing Lab</span>
+    </div>
+
+    <!-- Headline -->
+    <h1 data-en="Sovereign Bio-Capital<br><span class='accent'>Clearing Simulator</span>"
+        data-ru="Суверенный симулятор<br><span class='accent'>биосферного клиринга</span>">
+      Sovereign Bio-Capital<br><span class="accent">Clearing Simulator</span>
+    </h1>
+    <p class="subtitle"
+       data-en="Seven-state clearing engine · 175 jurisdictions · Thermodynamic verification"
+       data-ru="Семишаговый двигатель клиринга · 175 юрисдикций · Термодинамическая верификация">
+      Seven-state clearing engine · 175 jurisdictions · Thermodynamic verification
+    </p>
+  </div>
+
+  <!-- State Machine Bar -->
+  <div class="state-bar">
+    <div class="state-node"><div class="state-circle active">1</div><span class="state-label">Observed</span></div>
+    <div class="state-connector lit"></div>
+    <div class="state-node"><div class="state-circle active">2</div><span class="state-label">Verified</span></div>
+    <div class="state-connector lit"></div>
+    <div class="state-node"><div class="state-circle active">3</div><span class="state-label">Certified</span></div>
+    <div class="state-connector lit"></div>
+    <div class="state-node"><div class="state-circle active">4</div><span class="state-label">Issued</span></div>
+    <div class="state-connector lit"></div>
+    <div class="state-node"><div class="state-circle active">5</div><span class="state-label">Settled</span></div>
+    <div class="state-connector lit"></div>
+    <div class="state-node"><div class="state-circle active">6</div><span class="state-label">Final</span></div>
+    <div class="state-connector"></div>
+    <div class="state-node"><div class="state-circle amber">R</div><span class="state-label">Reversed</span></div>
+  </div>
+
+  <!-- Feature Cards -->
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">⬡</span>
+      <h3 data-en="State Machine" data-ru="Стейт-машина">State Machine</h3>
+      <p data-en="Irreversible ratchet protocol. Seven cryptographically locked states. Backward navigation architecturally prohibited."
+         data-ru="Необратимый протокол-храповик. Семь криптографически запертых состояний. Ретроградная навигация архитектурно заблокирована.">
+        Irreversible ratchet protocol. Seven cryptographically locked states. Backward navigation architecturally prohibited.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon">◈</span>
+      <h3 data-en="Capacity Calculator" data-ru="Калькулятор ёмкости">Capacity Calculator</h3>
+      <p data-en="S₀ = α · (1–σ) · C_stock · P_carbon. Interactive formula with parameter sliders. Overcollateralisation ratio Γ > 200%."
+         data-ru="S₀ = α · (1–σ) · C_stock · P_carbon. Интерактивная формула с ползунками. Коэффициент избыточного обеспечения Γ > 200%.">
+        S₀ = α · (1–σ) · C_stock · P_carbon. Interactive formula with parameter sliders. Overcollateralisation ratio Γ > 200%.
+      </p>
+    </div>
+    <div class="card">
+      <span class="card-icon">◉</span>
+      <h3 data-en="Territory Explorer" data-ru="Навигатор территорий">Territory Explorer</h3>
+      <p data-en="3D globe. Bio-capital heat map across 175 jurisdictions. Dynamic BAIN ID generation. Carbon stock visualisation."
+         data-ru="3D-глобус. Тепловая карта биокапитала 175 юрисдикций. Динамическая генерация BAIN ID. Визуализация запасов углерода.">
+        3D globe. Bio-capital heat map across 175 jurisdictions. Dynamic BAIN ID generation. Carbon stock visualisation.
+      </p>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-value">175</div>
+      <div class="metric-label" data-en="Jurisdictions" data-ru="Юрисдикций">Jurisdictions</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value">T+0</div>
+      <div class="metric-label" data-en="Atomic Settlement" data-ru="Атомарный расчёт">Atomic Settlement</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value">Γ>200%</div>
+      <div class="metric-label" data-en="Overcollateralisation" data-ru="Избыточное обеспечение">Overcollateralisation</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value">$19.3B</div>
+      <div class="metric-label" data-en="Annual Savings (RU–CN)" data-ru="Годовая экономия (РФ–КНР)">Annual Savings (RU–CN)</div>
+    </div>
+  </div>
+
+  <!-- Launch Badge -->
+  <div class="launch">
+    <div class="launch-badge">
+      <span class="dot"></span>
+      <span data-en="LAUNCHING Q3 2026 — BRICS FORUM" data-ru="ЗАПУСК Q3 2026 — ФОРУМ БРИКС">LAUNCHING Q3 2026 — BRICS FORUM</span>
+    </div>
+    <p class="launch-sub"
+       data-en="A project of <a href='https://kryonis.global'>KRYONIS Sovereign Systems</a> in partnership with <a href='https://bioclearing.global'>bioclearing.global</a>"
+       data-ru="Проект <a href='https://kryonis.global'>KRYONIS Sovereign Systems</a> в партнёрстве с <a href='https://bioclearing.global'>bioclearing.global</a>">
+      A project of <a href="https://kryonis.global">KRYONIS Sovereign Systems</a> in partnership with <a href="https://bioclearing.global">bioclearing.global</a>
+    </p>
+  </div>
+
+  <!-- Partners -->
+  <div class="partners">
+    <span class="partner-label" data-en="Strategic partners" data-ru="Стратегические партнёры">Strategic partners</span>
+    <div class="partner-names">
+      <span class="partner-name">KRYONIS</span>
+      <span class="partner-sep"></span>
+      <span class="partner-name">ОБР</span>
+      <span class="partner-sep"></span>
+      <span class="partner-name">ЕвразияБИО</span>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer>
+  <span>© 2026 KRYONIS Sovereign Systems Limited · Hong Kong</span>
+  <span>BCCS Protocol v1.0 · <a href="https://bioclearing.global">bioclearing.global</a></span>
+</footer>
+
+<script>
+  // UTC Clock
+  function updateClock() {
+    const now = new Date();
+    const utc = now.toISOString().slice(11, 19);
+    document.getElementById('utc-clock').textContent = 'UTC ' + utc;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Language Toggle
+  function setLang(lang) {
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.getElementById('lang-ru').classList.toggle('active', lang === 'ru');
+    document.querySelectorAll('[data-' + lang + ']').forEach(el => {
+      const val = el.getAttribute('data-' + lang);
+      if (val) el.innerHTML = val;
+    });
+  }
+</script>
+
+</body>
+</html>
